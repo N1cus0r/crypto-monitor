@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from authentication.models import CustomUser
-from .serializers import WatchlistIDSerializer, WatchlistSerializer
+from .serializers import WatchlistIDSerializer
 from .utils import Token, Crypto
 
 
