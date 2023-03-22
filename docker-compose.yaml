@@ -1,0 +1,111 @@
+version: "3.8"
+
+services:
+  server:
+    build:
+      context: ./server
+    command: >
+      bash -c "python manage.py migrate 
+      && daphne -b 0.0.0.0 -p 8000 core.asgi:application"
+    
+    ports:
+      - 8000:8000
+    expose:
+      - 8000
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-566c-hrff#zl8#69@-wbr+y@i-7g92w&r@f#tg7cfkag4nm=@*
+      - CORS_ALLOWED_ORIGIN=http://localhost:3000
+      - BROKER_URL=redis://broker:6379
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - db
+      - broker
+  
+  celery-worker:
+    build: 
+      context: ./server
+    command: celery -A core worker -l INFO   
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-566c-hrff#zl8#69@-wbr+y@i-7g92w&r@f#tg7cfkag4nm=@*
+      - CORS_ALLOWED_ORIGIN=http://localhost:3000
+      - BROKER_URL=redis://broker:6379
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - server
+      - db
+      - broker
+
+  celery-beat:
+    build: 
+      context: ./server
+    command: celery -A core beat -l INFO  
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-566c-hrff#zl8#69@-wbr+y@i-7g92w&r@f#tg7cfkag4nm=@*
+      - CORS_ALLOWED_ORIGIN=http://localhost:3000
+      - BROKER_URL=redis://broker:6379
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - server
+      - db
+      - broker    
+      - celery-worker
+
+  client:
+    build:
+      context: ./client
+    volumes:
+      - react_build:/react/build
+    environment:
+      - REACT_APP_WS_URL = "ws://127.0.0.1:8000/ws/"
+      - REACT_APP_SERVER_HOST_URL = "http://127.0.0.1:8000/"  
+
+  nginx:
+    image: nginx
+    ports:
+      - 80:8080
+    volumes:
+      - ./nginx/nginx-setup.conf:/etc/nginx/conf.d/default.conf:ro
+      - react_build:/var/www/react
+    depends_on:
+      - server
+      - client
+
+  db:
+    container_name: db
+    image: postgres
+    ports:
+      - 5432:5432
+    expose:
+      - 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  broker:
+    container_name: redis-broker
+    image: redis
+    ports:
+      - 6379:6379
+    expose:
+      - 6379  
+volumes:
+  react_build:
+  pgdata:

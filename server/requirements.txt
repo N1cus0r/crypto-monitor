@@ -1,0 +1,14 @@
+black
+python-dotenv
+requests
+django
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+django-celery-beat
+celery
+daphne
+channels
+channels-redis
+redis
+psycopg2-binary
